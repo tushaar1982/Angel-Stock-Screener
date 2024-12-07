@@ -30,10 +30,10 @@ logging.basicConfig(
 logging.getLogger("uvicorn").setLevel(logging.WARNING)
 
 # Replace with your credentials
-API_KEY = ''
-CLIENT_CODE = ''
-PASSWORD = ''
-TOTP_TOKEN = ''
+API_KEY = 'mrGAmTyy'
+CLIENT_CODE = 'DIHV1008'
+PASSWORD = '1982'
+TOTP_TOKEN = '43X7CRFHVDVEGZX56PZVN4NE2I'
 
 # Initialize SmartConnect
 from SmartApi import SmartConnect
@@ -176,15 +176,15 @@ def generate_signals(symbol):
 
     if (latest['KAMA_short_signal'] == 'green' and prev['KAMA_short_signal'] == 'red'
         and latest['KAMA_long_signal'] == 'green'
-        and latest['Choppiness_Index'] < 50
+        and latest['Choppiness_Index'] < 38.2
         and latest['ADX'] > 55):
         signal = "BUY"
         stop_loss = latest['low'] * 0.999
         target = latest['close'] + (2.5 * latest['ATR'])
 
     elif (latest['KAMA_short_signal'] == 'red' and prev['KAMA_short_signal'] == 'green'
-          and latest['KAMA_long_signal'] == 'green'
-          and latest['Choppiness_Index'] < 50
+          and latest['KAMA_long_signal'] == 'red'
+          and latest['Choppiness_Index'] < 38.2
           and latest['ADX'] > 55):
         signal = "SELL"
         stop_loss = latest['high'] * 1.001
