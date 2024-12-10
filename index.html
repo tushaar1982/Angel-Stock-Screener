@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Trend Identification system</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+    <style>
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        .custom-pulse {
+            animation: pulse 2s infinite;
+        }
+        .fade-in {
+            animation: fadeIn 1s ease-in;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .toast {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            background: #f87171;
+            color: #fff;
+            padding: 1rem 2rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            opacity: 0;
+            animation: toastIn 0.5s forwards, fadeOut 3s 2s forwards;
+        }
+        @keyframes toastIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes fadeOut {
+            to { opacity: 0; }
+        }
+        .bounce-in {
+            animation: bounceIn 1s ease-in;
+        }
+        @keyframes bounceIn {
+            0% { transform: scale(0.5); opacity: 0; }
+            50% { transform: scale(1.1); opacity: 1; }
+            100% { transform: scale(1); }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 font-sans">
+    <div class="container mx-auto px-4 py-8">
+        <h1 class="text-4xl font-bold text-center mb-8 animate__animated animate__fadeInDown">TradePulse AI
+        </h1>
+        <h3 class="text-center mb-8 animate__animated animate__fadeInDown">"Stay Ahead of the Market Pulse with AI."</h3>
+        
+        <button id="start-button" class="block mx-auto mb-8 px-6 py-3 bg-blue-500 text-white font-semibold rounded-lg shadow-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-opacity-75 animate__animated animate__bounceIn">
+            Start
+        </button>
+
+        <!-- Latest Signal Section -->
+        <div id="latest-signal" class="mb-8 hidden animate__animated animate__fadeIn">
+            <h2 class="text-2xl font-semibold mb-4">Latest Signal</h2>
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <div class="text-center">
+                    <span id="symbol" class="text-3xl font-bold bounce-in"></span>
+                    <span id="signal" class="ml-4 px-3 py-1 rounded-full text-white font-semibold bounce-in"></span>
+                </div>
+                <div class="flex justify-around bg-gray-50 p-4 mt-4 rounded-lg shadow-md">
+                    <div class="text-center">
+                        <p class="text-sm font-semibold text-gray-500">Close</p>
+                        <p id="close" class="text-xl font-bold text-blue-500"></p>
+                    </div>
+                    <div class="text-center">
+                        <p class="text-sm font-semibold text-gray-500">Target</p>
+                        <p id="target" class="text-xl font-bold text-green-500"></p>
+                    </div>
+                    <div class="text-center">
+                        <p class="text-sm font-semibold text-gray-500">Stop Loss</p>
+                        <p id="stop-loss" class="text-xl font-bold text-red-500"></p>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-4 mt-6 text-center">
+                    <div>ADX: <span id="adx" class="font-semibold"></span></div>
+                    <div>ATR: <span id="atr" class="font-semibold"></span></div>
+                    <div>AI Trend Short: <span id="kama-short" class="font-semibold"></span></div>
+                    <div>AI Trend Long: <span id="kama-long" class="font-semibold"></span></div>
+                </div>
+                <div class="text-center mt-6">
+                    Countdown: <span id="countdown" class="text-2xl font-bold custom-pulse">30</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Generated Signals Table -->
+        <div id="generated-signals" class="hidden animate__animated animate__fadeIn">
+            <h2 class="text-2xl font-semibold mb-4">Generated Signals</h2>
+            <div class="bg-white rounded-lg shadow-lg overflow-hidden">
+                <table class="w-full text-center">
+                    <thead class="bg-blue-500 text-white">
+                        <tr>
+                            <th class="px-4 py-3">Symbol</th>
+                            <th class="px-4 py-3">Signal</th>
+                            <th class="px-4 py-3">Close</th>
+                            <th class="px-4 py-3">Target</th>
+                            <th class="px-4 py-3">Stop Loss</th>
+                            <th class="px-4 py-3">ADX</th>
+                            <th class="px-4 py-3">ATR</th>
+                            <th class="px-4 py-3">AI Trend Short</th>
+                            <th class="px-4 py-3">AI Trend Long</th>
+                            <th class="px-4 py-3">Received At</th>
+                        </tr>
+                    </thead>
+                    <tbody id="generated-signals-body" class="bg-gray-50"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast-container"></div>
+
+    <!-- Notification Sounds -->
+    <audio id="notification-sound" preload="auto">
+        <source src="notification.mp3" type="audio/mp3">
+    </audio>
+    <audio id="alert-sound" preload="auto">
+        <source src="babu.mp3" type="audio/mp3">
+    </audio>
+
+    <script>
+        let lastDataHash = null;
+        let countdownInterval;
+        let countdownTime = 30;
+
+        async function fetchData() {
+            try {
+                const response = await fetch("http://127.0.0.1:8000/signals/");
+                const data = await response.json();
+                const currentHash = JSON.stringify(data);
+
+                if (lastDataHash !== currentHash) {
+                    updateLatestSignal(data);
+                    appendToGeneratedSignals(data);
+                    playNotificationSound();
+                    resetCountdown();
+                    lastDataHash = currentHash;
+
+                    if (data.ADX > 50) {
+                        showToast(`High ADX Alert! (${data.ADX})`);
+                        playAlertSound();
+                    }
+                }
+            } catch (error) {
+                console.error("Error fetching data:", error);
+            }
+        }
+
+        function updateLatestSignal(data) {
+            document.getElementById("symbol").textContent = data.symbol;
+            document.getElementById("signal").textContent = data.signal;
+            document.getElementById("signal").className = `ml-4 px-3 py-1 rounded-full text-white font-semibold bounce-in ${
+                data.signal === "BUY" ? "bg-green-500" : "bg-red-500"
+            }`;
+            document.getElementById("close").textContent = data.Close;
+            document.getElementById("target").textContent = data.Target;
+            document.getElementById("stop-loss").textContent = data.Stop_Loss;
+            document.getElementById("adx").textContent = data.ADX;
+            document.getElementById("atr").textContent = data.ATR;
+            document.getElementById("kama-short").textContent = data.KAMA_short;
+            document.getElementById("kama-long").textContent = data.KAMA_long;
+        }
+
+        function appendToGeneratedSignals(data) {
+            const tableBody = document.getElementById("generated-signals-body");
+            const newRow = document.createElement("tr");
+            newRow.className = "fade-in";
+            newRow.innerHTML = `
+                <td>${data.symbol}</td>
+                <td class="${data.signal === 'BUY' ? 'text-green-500' : 'text-red-500'}">${data.signal}</td>
+                <td>${data.Close}</td>
+                <td>${data.Target}</td>
+                <td>${data.Stop_Loss}</td>
+                <td>${data.ADX}</td>
+                <td>${data.ATR}</td>
+                <td>${data.KAMA_short}</td>
+                <td>${data.KAMA_long}</td>
+                <td>${new Date().toLocaleTimeString()}</td>
+            `;
+            tableBody.insertBefore(newRow, tableBody.firstChild);
+        }
+
+        function playNotificationSound() {
+            document.getElementById("notification-sound").play();
+        }
+
+        function playAlertSound() {
+            document.getElementById("alert-sound").play();
+        }
+
+        function resetCountdown() {
+            clearInterval(countdownInterval);
+            countdownTime = 30;
+            const countdownElement = document.getElementById("countdown");
+            countdownInterval = setInterval(() => {
+                countdownTime--;
+                countdownElement.textContent = countdownTime;
+                if (countdownTime <= 0) {
+                    clearInterval(countdownInterval);
+                    countdownElement.textContent = "Expired";
+                }
+            }, 1000);
+        }
+
+        function showToast(message) {
+            const toastContainer = document.getElementById("toast-container");
+            const toast = document.createElement("div");
+            toast.className = "toast";
+            toast.textContent = message;
+            toastContainer.appendChild(toast);
+            setTimeout(() => toast.remove(), 5000);
+        }
+
+        document.getElementById("start-button").addEventListener("click", () => {
+            fetchData();
+            setInterval(fetchData, 10000);
+            document.getElementById("start-button").style.display = "none";
+            document.getElementById("latest-signal").classList.remove("hidden");
+            document.getElementById("generated-signals").classList.remove("hidden");
+        });
+    </script>
+</body>
+</html>
